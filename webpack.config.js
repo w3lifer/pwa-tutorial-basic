@@ -5,11 +5,12 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 
 const modeConfig = env => require(`./build-utils/webpack.${env.mode}.js`)(env);
+const loadPresets = require('./build-utils/loadPresets');
 
-module.exports = env => {
+module.exports = ({ mode, presets }) => {
   return webpackMerge(
     {
-      mode: env.mode,
+      mode,
       plugins: [
         new CleanWebpackPlugin(['dist']),
         new webpack.ProgressPlugin(),
@@ -23,6 +24,7 @@ module.exports = env => {
         )
       ]
     },
-    modeConfig(env)
+    modeConfig({ mode, presets }),
+    loadPresets({ mode, presets })
   );
 };
