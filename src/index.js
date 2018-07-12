@@ -43,7 +43,6 @@ function setupNavIntersectionObserver() {
 async function loadSpeakers() {
   speakers = (await getSpeakers()).default;
   const speakersDiv = document.querySelector('.speakers');
-  console.log(speakers);
 
   speakersDiv.innerHTML = speakers.map(toSpeakerBlock).join('\n');
 }
