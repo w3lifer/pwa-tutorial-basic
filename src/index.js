@@ -1,6 +1,4 @@
 import './styles.css';
-const getSpeakers = () => import('./speakers.json');
-const getSchedule = () => import('./schedule.json');
 
 class PWAConfApp {
   constructor() {
@@ -17,14 +15,14 @@ class PWAConfApp {
   }
 
   async loadSpeakers() {
-    this.speakers = (await getSpeakers()).default;
+    this.speakers = (await import('./speakers.json')).default;
     const speakersDiv = document.querySelector('.speakers');
 
     speakersDiv.innerHTML = this.speakers.map(this.toSpeakerBlock).join('\n');
   }
 
   async loadSchedule() {
-    const rawSchedule = (await getSchedule()).default;
+    const rawSchedule = (await import('./schedule.json')).default;
     // Add speaker details to array
     const schedule = rawSchedule.map(this.addSpeakerDetails, this);
     const scheduleDiv = document.querySelector('.schedule');
