@@ -1,8 +1,8 @@
 import './styles.css';
-
 class PWAConfApp {
   constructor() {
     this.init();
+    this.registerSW();
   }
   async init() {
     if ('IntersectionObserver' in window) {
@@ -89,21 +89,39 @@ class PWAConfApp {
     });
     observer.observe(header);
   }
-}
 
-async function registerSW() {
-  if ('serviceWorker' in navigator) {
-    try {
-      await navigator.serviceWorker.register('./sw.js');
-    } catch (e) {
-      console.log('ServiceWorker registration failed. Sorry about that.', e);
+  async registerSW() {
+    if ('serviceWorker' in navigator) {
+      try {
+        this.swRegistration = await navigator.serviceWorker.register('./sw.js');
+        if ('PushManager' in window) {
+          const subscription = await this.swRegistration.pushManager.getSubscription();
+          this.isSubscribed = !(subscription === null);
+        } else {
+          this.isSubscribed = false;
+        }
+        this.configureNotificationButton();
+      } catch (e) {
+        console.log('ServiceWorker registration failed. Sorry about that.', e);
+      }
+    } else {
+      document.querySelector('.alert').removeAttribute('hidden');
     }
-  } else {
-    document.querySelector('.alert').removeAttribute('hidden');
+  }
+
+  async configureNotificationButton() {
+    const updatesButton = document.querySelector('#updates');
+
+    if (this.isSubscribed) {
+      updatesButton.textContent = 'Disable notifications';
+    } else {
+      updatesButton.textContent = 'Enable notifications';
+    }
+
+    updatesButton.removeAttribute('hidden');
   }
 }
 
 window.addEventListener('load', e => {
   new PWAConfApp();
-  registerSW();
 });
