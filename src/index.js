@@ -1,17 +1,44 @@
+import PushService from './script/pushService.js';
 import './styles.css';
+
+window.addEventListener('load', e => {
+  new PWAConfApp();
+});
 class PWAConfApp {
   constructor() {
     this.init();
-    this.registerSW();
   }
   async init() {
-    if ('IntersectionObserver' in window) {
-      this.setupNavIntersectionObserver();
-    }
+    this.setupNavIntersectionObserver();
     this.addLoadingIndicatorDelay();
 
-    await this.loadSpeakers();
-    await this.loadSchedule();
+    this.loadSpeakers();
+    this.loadSchedule();
+
+    await this.registerSW();
+    await this.initPush();
+  }
+
+  async initPush() {
+    this.updatesButton = document.querySelector('#updates');
+    this.updatesButton.addEventListener('click', async e => {
+      this.updatesButton.disabled = true;
+
+      if (await this.pushService.isSubscribed()) {
+        await this.pushService.unsubscribeFromUpdates();
+        this.updateButtonState();
+      } else {
+        try {
+          await this.pushService.subscribeToUpdates();
+          this.pushService.showNotification('Subscribed to updates');
+        } catch (err) {
+          console.log(err);
+        } finally {
+          this.updateButtonState();
+        }
+      }
+    });
+    this.updateButtonState();
   }
 
   async loadSpeakers() {
@@ -73,6 +100,8 @@ class PWAConfApp {
   }
 
   setupNavIntersectionObserver() {
+    if (!'IntersectionObserver' in window) return;
+
     const nav = document.querySelector('nav');
     const header = document.querySelector('header');
     const callback = entries => {
@@ -93,14 +122,12 @@ class PWAConfApp {
   async registerSW() {
     if ('serviceWorker' in navigator) {
       try {
-        this.swRegistration = await navigator.serviceWorker.register('./sw.js');
+        const swRegistration = await navigator.serviceWorker.register(
+          './sw.js'
+        );
         if ('PushManager' in window) {
-          const subscription = await this.swRegistration.pushManager.getSubscription();
-          this.isSubscribed = !(subscription === null);
-        } else {
-          this.isSubscribed = false;
+          this.pushService = new PushService(swRegistration);
         }
-        this.configureNotificationButton();
       } catch (e) {
         console.log('ServiceWorker registration failed. Sorry about that.', e);
       }
@@ -109,19 +136,17 @@ class PWAConfApp {
     }
   }
 
-  async configureNotificationButton() {
-    const updatesButton = document.querySelector('#updates');
-
-    if (this.isSubscribed) {
-      updatesButton.textContent = 'Disable notifications';
+  async updateButtonState() {
+    if (Notification.permission !== 'denied') {
+      if (await this.pushService.isSubscribed()) {
+        this.updatesButton.textContent = 'Disable notifications';
+      } else {
+        this.updatesButton.textContent = 'Enable notifications';
+      }
+      this.updatesButton.disabled = false;
+      this.updatesButton.removeAttribute('hidden');
     } else {
-      updatesButton.textContent = 'Enable notifications';
+      this.updatesButton.parentElement.removeChild(this.updatesButton);
     }
-
-    updatesButton.removeAttribute('hidden');
   }
 }
-
-window.addEventListener('load', e => {
-  new PWAConfApp();
-});
